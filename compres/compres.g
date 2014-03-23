@@ -1,3 +1,20 @@
+/**
+ * compres grammar and interpreter
+ *
+ * By default the interpreter will be compiled in interactive mode.
+ * This means that its going to read the input stream line by line,
+ * executing the instructions and saving data in memory like a real
+ * interpreter.
+ * If you define the constant NO_INTERACTIVE at compile time
+ * (with -DNO_INTERACTIVE) the resulting interpreter will read the
+ * entire input and then it will only evaluate the nodes where some
+ * information needs to be printed, using the provided findASTCompraDef
+ * function.
+ *
+ * I've decided to do an interactive version because I think that trying to
+ * imitate real interpreters is more interesting and challenging.
+ * PD: I'm currently coursing compilers too.
+ */
 #header
 <<
 #include <string>
@@ -265,8 +282,11 @@ public:
 
 /**
  * Memory map
+ * Only used on the interactive version
  */
+#ifndef NO_INTERACTIVE
 map<string, List*> memory;
+#endif
 
 /**
  * Stores possible garbage to clean when dereferenced.
@@ -318,12 +338,16 @@ List* eval_product_list(AST *node)
 
 List* eval_id(AST *node)
 {
+#ifdef NO_INTERACTIVE
+  return eval_expr(child(findASTCompraDef(node->text), 1));
+#else
   map<string, List*>::iterator it = memory.find(node->text);
 
   if(it == memory.end())
     throw "Undefined variable: " + node->text;
 
   return it->second;
+#endif
 }
 
 List* eval_atom(AST *node)
@@ -379,6 +403,7 @@ void eval_print(AST *node)
   eval_expr(child(node, 0))->print();
 }
 
+#ifndef NO_INTERACTIVE
 void eval_assign(AST *node)
 {
   string id = child(node, 0)->text;
@@ -396,6 +421,7 @@ void eval_assign(AST *node)
   memory[id] = l;
   l->references += 1;
 }
+#endif
 
 void eval(AST *root)
 {
@@ -403,20 +429,25 @@ void eval(AST *root)
 
   while(current != NULL)
   {
-    if(current->type == EQUAL)
-      eval_assign(current);
-    
-    else if(current->type == PRINT)
-      eval_print(current);
+    switch(current->type)
+    {
+      case STDEV:
+        cout << stdev(current) << endl; break;
 
-    else if(current->type == STDEV)
-      cout << stdev(current) << endl;
+      case UNITS:
+        cout << unitats(current) << endl; break;
 
-    else if(current->type == UNITS)
-      cout << unitats(current) << endl;
+      case PRODS:
+        cout << productes(current) << endl; break;
 
-    else if(current->type == PRODS)
-      cout << productes(current) << endl;
+      case PRINT:
+        eval_print(current); break;
+
+#ifndef NO_INTERACTIVE
+      case EQUAL:
+        eval_assign(current); break;
+#endif
+    }
 
     current = current->right;
   }
@@ -464,12 +495,19 @@ int error_count()
   return zzSyntaxErrCount + zzLexErrCount;
 }
 
-
 /**
  * Main function
  */
 int main()
 {
+#ifdef NO_INTERACTIVE
+  root = NULL;
+  ANTLR(compres(&root), stdin);
+  ASTPrint(root);
+  eval(root);
+#else
+  // Interactive mode
+  // Read input line by line using memory like a real interpreter
   int errors;
   string s;
 
@@ -482,9 +520,7 @@ int main()
 
     if(errors - error_count() == 0)
     {
-      #ifdef VERBOSE
-        ASTPrint(root);
-      #endif
+      ASTPrint(root);
 
       try
       {
@@ -499,6 +535,7 @@ int main()
     ASTFree(root);
     collect_garbage();
   }
+#endif
 }
 >>
 
