@@ -27,7 +27,7 @@ AST* createASTnode(Attrib* attr, int ttype, char *textt);
 #include <cstdlib>
 #include <cmath>
 #include <map>
-#include <stack>
+#include <set>
 
 //global structures
 AST *root;
@@ -129,13 +129,12 @@ class List
 public:
   int references;
 
+  /**
+   * In order to register every new list as possible garbage
+   * we need to implement the constructors later.
+   */
   List();
   List(List *l);
-  
-  ~List()
-  {
-    cerr << "[DEBUG] List deleted" << endl;
-  }
 
   void put(string product, int amount)
   {
@@ -163,7 +162,27 @@ public:
 
   double stdev()
   {
-    return 0;
+    int num_items = size();
+    
+    if(num_items < 1)
+      return 0;
+
+    double mean = ((double) units()) / num_items;
+    double sum = 0;
+    double factor;
+
+    map<string, int>::iterator it = items.begin();
+
+    while(it != items.end())
+    {
+
+      factor = it->second - mean;
+      sum += factor*factor;
+
+      ++it;
+    }
+
+    return sqrt(sum / num_items);
   }
 
   List* minus(List *l)
@@ -184,10 +203,10 @@ public:
         throw "First operand does not contain: " + current->first;
 
       if(it->second < current->second)
-        throw "First operand contains less " + it->first + " than second " +
+        throw "First operand contains less '" + it->first + "' than second " +
               "operand";
 
-      result->items[current->first] -= current->second;
+      it->second -= current->second;
       ++current;
     }
 
@@ -196,7 +215,51 @@ public:
 
   List* join(List *l)
   {
-    return new List;
+    List *result = new List(this);
+
+    map<string, int>::iterator current = l->items.begin();
+    map<string, int>::iterator it;
+
+    while(current != l->items.end())
+    {
+      result->items[current->first] += current->second;
+      ++current;
+    }
+
+    return result;
+  }
+
+  List* mult(int m)
+  {
+    List *result = new List(this);
+
+    map<string, int>::iterator current = result->items.begin();
+
+    while(current != result->items.end())
+    {
+      current->second *= m;
+      ++current;
+    }
+
+    return result;
+  }
+
+  void print()
+  {
+    cout << "[";
+    map<string, int>::iterator current = items.begin();
+    bool first = true;
+
+    while(current != items.end())
+    {
+      if(first) first = false;
+      else cout << ", ";
+
+      cout << "(" << current->second << ", " << current->first << ")";
+      ++current;
+    }
+
+    cout << "]" << endl;
   }
 };
 
@@ -207,32 +270,30 @@ map<string, List*> memory;
 
 /**
  * Stores possible garbage to clean when dereferenced.
+ * We use a set to avoid double deletion (scary).
  */
-stack<List*> garbage;
+set<List*> garbage;
 
 /**
- * List implementation
+ * List constructors
  */
+// Empty list constructor
 List::List()
 {
   references = 0;
 
   // Mark the new list as possible garbage
-  garbage.push(this);
-
-  cerr << "[DEBUG] Constructor 1" << endl;
+  garbage.insert(this);
 }
 
+// Copy constructor
 List::List(List *l)
 {
   items = l->items;
   references = 0;
 
-  garbage.push(this);
-
-  cerr << "[DEBUG] Constructor 2" << endl;
+  garbage.insert(this);
 }
-
 
 
 /**
@@ -248,7 +309,7 @@ List* eval_product_list(AST *node)
 
   while(current != NULL)
   {
-    l->put(current->down->text, atoi((current->kind).c_str()));
+    l->put(current->down->text, atoi(current->kind.c_str()));
     current = current->right;
   }
 
@@ -278,6 +339,12 @@ List* eval_atom(AST *node)
 
 List* eval_mult_expr(AST *node)
 {
+  if(node->type == MULT)
+  {
+    int intconst = atoi(child(node, 0)->kind.c_str());
+    return eval_mult_expr(child(node, 1))->mult(intconst);
+  }
+
   return eval_atom(node);
 }
 
@@ -307,6 +374,11 @@ int productes(AST *node)
   return eval_expr(child(node, 0))->size();
 }
 
+void eval_print(AST *node)
+{
+  eval_expr(child(node, 0))->print();
+}
+
 void eval_assign(AST *node)
 {
   string id = child(node, 0)->text;
@@ -318,7 +390,7 @@ void eval_assign(AST *node)
   if(it != memory.end())
   {
     it->second->references -= 1;
-    garbage.push(it->second);
+    garbage.insert(it->second);
   }
 
   memory[id] = l;
@@ -333,6 +405,9 @@ void eval(AST *root)
   {
     if(current->type == EQUAL)
       eval_assign(current);
+    
+    else if(current->type == PRINT)
+      eval_print(current);
 
     else if(current->type == STDEV)
       cout << stdev(current) << endl;
@@ -347,19 +422,29 @@ void eval(AST *root)
   }
 }
 
+/**
+ * To avoid memory leaks we need to free the lists that
+ * can not be referenced anymore.
+ */
 void collect_garbage()
 {
-  while(not garbage.empty())
+  set<List*>::iterator it = garbage.begin();
+
+  while(it != garbage.end())
   {
-    List *l = garbage.top();
-    garbage.pop();
+    List *l = *it;
 
     if(l->references < 1)
       delete l;
+
+    // This can be used to clear the set at the same time we iterate it
+    garbage.erase(it++);
   }
 }
 
-// Delete an entire AST
+/**
+ * Deletes an entire AST
+ */
 void ASTFree(AST *a)
 {
   if(a == NULL)
@@ -371,21 +456,28 @@ void ASTFree(AST *a)
   delete a;
 }
 
+/**
+ * Returns the total number of interpreter errors
+ */
 int error_count()
 {
   return zzSyntaxErrCount + zzLexErrCount;
 }
 
+
+/**
+ * Main function
+ */
 int main()
 {
   int errors;
-
   string s;
+
   while(getline(cin, s))
   {
     errors = error_count();
-
     root = NULL;
+
     ANTLRs(compres(&root), (char*)s.c_str());
 
     if(errors - error_count() == 0)
@@ -426,9 +518,11 @@ int main()
 #token STDEV "DESVIACIO"
 #token UNITS "UNITATS"
 #token PRODS "PRODUCTES"
+#token PRINT "MOSTRAR"
 #token NUM "[0-9]+"
 #token ID "[a-zA-Z][a-zA-Z0-9]*"
 #token SPACE "[\ \n]" << zzskip();>>
+#token COMMENT "//~[\n]*" << zzskip();>>
 
 compres
   : (instruction)* <<#0=createASTlist(_sibling);>>
@@ -446,7 +540,8 @@ assign
 show_info
   : ( STDEV^
     | UNITS^
-    | PRODS^) expr
+    | PRODS^
+    | PRINT^) expr
   ;
 
 expr

@@ -1,0 +1,12 @@
+Compres1 = [(1,mantega),(2,tomaquets),(20,aigua)] // Compra de 3 productes
+Compres2 = [(2,pomes)]                            // Compra de 2 pomes
+Compres3 = Compres1 AND Compres2                  // Compres3 conte la unio
+Compres4 = [(1,tomaquets)] 
+Compres5 = Compres3 MINUS Compres4                // Compres5 conte la resta
+Compres6 = [(1,dentrific)]
+Compres7 = 3*Compres5 AND Compres6                // Us multiplicacio compres
+UNITATS Compres7                                  // Retorna 73
+Compres8 = 3*(Compres3 MINUS Compres2)
+UNITATS Compres8                          // Retorna 69
+DESVIACIO Compres7                        // Desviacio standard Compres7
+PRODUCTES Compres7                        // Llista productes Compres7
