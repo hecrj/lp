@@ -27,6 +27,7 @@ AST* createASTnode(Attrib* attr, int ttype, char *textt);
 #include <cstdlib>
 #include <cmath>
 #include <map>
+#include <stack>
 
 //global structures
 AST *root;
@@ -123,11 +124,19 @@ void ASTPrint(AST *a)
  */
 class List
 {
-
-private:
   map<string, int> items;
 
 public:
+  int references;
+
+  List();
+  List(List *l);
+  
+  ~List()
+  {
+    cerr << "[DEBUG] List deleted" << endl;
+  }
+
   void put(string product, int amount)
   {
     items[product] = amount;
@@ -138,9 +147,51 @@ public:
     return items.size();
   }
 
+  int units()
+  {
+    int units = 0;
+    map<string, int>::iterator it = items.begin();
+
+    while(it != items.end())
+    {
+      units += it->second;
+      ++it;
+    }
+
+    return units;
+  }
+
+  double stdev()
+  {
+    return 0;
+  }
+
   List* minus(List *l)
   {
-    return new List;
+    List *result = new List(this);
+
+    map<string, int>::iterator current = l->items.begin();
+    map<string, int>::iterator it;
+
+    while(current != l->items.end())
+    {
+      // I know that we are not supposed to check this
+      // But I'd like to throw an exception if the operation can not
+      // be performed in order to make the interpreter more stable
+      it = result->items.find(current->first);
+
+      if(it == result->items.end())
+        throw "First operand does not contain: " + current->first;
+
+      if(it->second < current->second)
+        throw "First operand contains less " + it->first + " than second " +
+              "operand";
+
+      result->items[current->first] -= current->second;
+      ++current;
+    }
+
+    return result;
   }
 
   List* join(List *l)
@@ -153,6 +204,36 @@ public:
  * Memory map
  */
 map<string, List*> memory;
+
+/**
+ * Stores possible garbage to clean when dereferenced.
+ */
+stack<List*> garbage;
+
+/**
+ * List implementation
+ */
+List::List()
+{
+  references = 0;
+
+  // Mark the new list as possible garbage
+  garbage.push(this);
+
+  cerr << "[DEBUG] Constructor 1" << endl;
+}
+
+List::List(List *l)
+{
+  items = l->items;
+  references = 0;
+
+  garbage.push(this);
+
+  cerr << "[DEBUG] Constructor 2" << endl;
+}
+
+
 
 /**
  * An atom can be a parenthesized expression.
@@ -213,12 +294,12 @@ List* eval_expr(AST *node)
 
 double stdev(AST *node)
 {
-  return 0;
+  return eval_expr(child(node, 0))->stdev();
 }
 
 int unitats(AST *node)
 {
-  return 0;
+  return eval_expr(child(node, 0))->units();
 }
 
 int productes(AST *node)
@@ -228,8 +309,20 @@ int productes(AST *node)
 
 void eval_assign(AST *node)
 {
+  string id = child(node, 0)->text;
   List* l = eval_expr(child(node, 1));
-  memory[child(node, 0)->text] = l;
+
+  map<string, List*>::iterator it = memory.find(id);
+
+  // Memory overwrite
+  if(it != memory.end())
+  {
+    it->second->references -= 1;
+    garbage.push(it->second);
+  }
+
+  memory[id] = l;
+  l->references += 1;
 }
 
 void eval(AST *root)
@@ -251,6 +344,18 @@ void eval(AST *root)
       cout << productes(current) << endl;
 
     current = current->right;
+  }
+}
+
+void collect_garbage()
+{
+  while(not garbage.empty())
+  {
+    List *l = garbage.top();
+    garbage.pop();
+
+    if(l->references < 1)
+      delete l;
   }
 }
 
@@ -300,6 +405,7 @@ int main()
     }
 
     ASTFree(root);
+    collect_garbage();
   }
 }
 >>
