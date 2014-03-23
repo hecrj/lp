@@ -13,7 +13,11 @@
  *
  * I've decided to do an interactive version because I think that trying to
  * imitate real interpreters is more interesting and challenging.
- * PD: I'm currently coursing compilers too.
+ *
+ * I've also added another way to define lists:
+ * { key: number, ... }
+ *
+ * PD: I'm currently coursing compilers (CL) too.
  */
 #header
 <<
@@ -181,7 +185,7 @@ public:
   {
     int num_items = size();
     
-    if(num_items < 1)
+    if(num_items < 2)
       return 0;
 
     double mean = ((double) units()) / num_items;
@@ -199,7 +203,7 @@ public:
       ++it;
     }
 
-    return sqrt(sum / num_items);
+    return sqrt(sum / (num_items - 1));
   }
 
   List* minus(List *l)
