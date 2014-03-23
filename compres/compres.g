@@ -15,7 +15,7 @@ typedef struct {
 void zzcr_attr(Attrib *attr, int type, char *text);
 
 // fields for AST nodes
-#define AST_FIELDS string kind; string text;
+#define AST_FIELDS string kind; string text; int type;
 #include "ast.h"
 
 // macro to create a new AST node (and function predeclaration)
@@ -26,10 +26,10 @@ AST* createASTnode(Attrib* attr, int ttype, char *textt);
 <<
 #include <cstdlib>
 #include <cmath>
+#include <map>
 
 //global structures
 AST *root;
-
 
 // function to fill token information
 void zzcr_attr(Attrib *attr, int type, char *text) {
@@ -46,8 +46,12 @@ void zzcr_attr(Attrib *attr, int type, char *text) {
 // function to create a new AST node
 AST* createASTnode(Attrib* attr, int type, char* text) {
   AST* as = new AST;
-  as->kind = attr->kind; 
+  as->kind = attr->kind;
   as->text = attr->text;
+
+  // I've added this to be able to use defined tokens to identify nodes
+  as->type = type;
+  
   as->right = NULL; 
   as->down = NULL;
   return as;
@@ -113,18 +117,264 @@ void ASTPrint(AST *a)
   }
 }
 
-int main() {
-  root = NULL;
-  ANTLR(compres(&root), stdin);
-  ASTPrint(root);
+/*############################################*/
+/**
+ * List class
+ */
+class List
+{
+
+private:
+  map<string, int> items;
+
+public:
+  void put(string product, int amount)
+  {
+    items[product] = amount;
+  }
+
+  int size()
+  {
+    return items.size();
+  }
+
+  List* minus(List *l)
+  {
+    return new List;
+  }
+
+  List* join(List *l)
+  {
+    return new List;
+  }
+};
+
+/**
+ * Memory map
+ */
+map<string, List*> memory;
+
+/**
+ * An atom can be a parenthesized expression.
+ * We need to define the eval_expr header in order to use recursion.
+ */
+List* eval_expr(AST *node);
+
+List* eval_product_list(AST *node)
+{
+  List* l = new List();
+  AST* current = node->down;
+
+  while(current != NULL)
+  {
+    l->put(current->down->text, atoi((current->kind).c_str()));
+    current = current->right;
+  }
+
+  return l;
+}
+
+List* eval_id(AST *node)
+{
+  map<string, List*>::iterator it = memory.find(node->text);
+
+  if(it == memory.end())
+    throw "Undefined variable: " + node->text;
+
+  return it->second;
+}
+
+List* eval_atom(AST *node)
+{
+  if(node->type == BRACKO)
+    return eval_product_list(node);
+
+  if(node->type == ID)
+    return eval_id(node);
+
+  return eval_expr(node);
+}
+
+List* eval_mult_expr(AST *node)
+{
+  return eval_atom(node);
+}
+
+List* eval_expr(AST *node)
+{
+  if(node->type == MINUS)
+    return eval_expr(child(node, 0))->minus(eval_expr(child(node, 1)));
+
+  if(node->type == AND)
+    return eval_expr(child(node, 0))->join(eval_expr(child(node, 1)));
+
+  return eval_mult_expr(node);
+}
+
+double stdev(AST *node)
+{
+  return 0;
+}
+
+int unitats(AST *node)
+{
+  return 0;
+}
+
+int productes(AST *node)
+{
+  return eval_expr(child(node, 0))->size();
+}
+
+void eval_assign(AST *node)
+{
+  List* l = eval_expr(child(node, 1));
+  memory[child(node, 0)->text] = l;
+}
+
+void eval(AST *root)
+{
+  AST *current = root->down;
+
+  while(current != NULL)
+  {
+    if(current->type == EQUAL)
+      eval_assign(current);
+
+    else if(current->type == STDEV)
+      cout << stdev(current) << endl;
+
+    else if(current->type == UNITS)
+      cout << unitats(current) << endl;
+
+    else if(current->type == PRODS)
+      cout << productes(current) << endl;
+
+    current = current->right;
+  }
+}
+
+// Delete an entire AST
+void ASTFree(AST *a)
+{
+  if(a == NULL)
+    return;
+
+  ASTFree(a->right);
+  ASTFree(a->down);
+
+  delete a;
+}
+
+int error_count()
+{
+  return zzSyntaxErrCount + zzLexErrCount;
+}
+
+int main()
+{
+  int errors;
+
+  string s;
+  while(getline(cin, s))
+  {
+    errors = error_count();
+
+    root = NULL;
+    ANTLRs(compres(&root), (char*)s.c_str());
+
+    if(errors - error_count() == 0)
+    {
+      #ifdef VERBOSE
+        ASTPrint(root);
+      #endif
+
+      try
+      {
+        eval(root);
+      }
+      catch(string exception)
+      {
+        cout << "error: " << exception << endl;
+      }
+    }
+
+    ASTFree(root);
+  }
 }
 >>
 
 #lexclass START
+#token EQUAL "="
+#token BRACKO "\["
+#token BRACKC "\]"
+#token KEYO "\{"
+#token KEYC "\}"
+#token PARO "\("
+#token PARC "\)"
+#token COMMA ","
+#token COLON ":"
+#token MINUS "MINUS"
+#token AND "AND"
+#token MULT "\*"
+#token STDEV "DESVIACIO"
+#token UNITS "UNITATS"
+#token PRODS "PRODUCTES"
+#token NUM "[0-9]+"
 #token ID "[a-zA-Z][a-zA-Z0-9]*"
 #token SPACE "[\ \n]" << zzskip();>>
 
-compres: (opers)* <<#0=createASTlist(_sibling);>> ;
+compres
+  : (instruction)* <<#0=createASTlist(_sibling);>>
+  ;
 
+instruction
+  : assign
+  | show_info
+  ;
 
+assign
+  : ID EQUAL^ expr
+  ;
 
+show_info
+  : ( STDEV^
+    | UNITS^
+    | PRODS^) expr
+  ;
+
+expr
+  : mult_expr ((MINUS^|AND^) mult_expr)*
+  ;
+
+mult_expr
+  : NUM (MULT^ mult_expr)
+  | atom
+  ;
+
+atom
+  : product_list
+  | ID
+  | PARO! expr PARC!
+  ;
+
+product_list
+  : BRACKO^ items BRACKC!
+  | k:KEYO^ <<#k->type=BRACKO;>> items_new KEYC!
+  ;
+
+items
+  : { item (COMMA! item)* }
+  ;
+
+item
+  : PARO! NUM^ COMMA! ID PARC!
+  ;
+
+items_new
+  : { item_new (COMMA! item_new)* }
+  ;
+
+item_new
+  : ID COLON! NUM^
+  ;
