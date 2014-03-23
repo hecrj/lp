@@ -2,7 +2,7 @@
  * compres grammar and interpreter
  *
  * By default the interpreter will be compiled in interactive mode.
- * This means that its going to read the input stream line by line,
+ * This means that it's going to read the input stream line by line,
  * executing the instructions and saving data in memory like a real
  * interpreter.
  * If you define the constant NO_INTERACTIVE at compile time
