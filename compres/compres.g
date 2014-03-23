@@ -15,9 +15,13 @@
  * imitate real interpreters is more interesting and challenging.
  *
  * I've also added another way to define lists:
- * { key: number, ... }
+ * { product: amount, ... }
  *
- * PD: I'm currently coursing compilers (CL) too.
+ * I was not sure whether the 'PRODUCTES' instruction should print the number
+ * of products or print the list contents, therefore I added an instruction
+ * to print the contents of a list: 'MOSTRAR'.
+ *
+ * Hector Ramon Jimenez - LP - Spring 2014 - FIB (UPC)
  */
 #header
 <<
