@@ -21,6 +21,9 @@
  * of products or print the list contents, therefore I added an instruction
  * to print the contents of a list: 'MOSTRAR'.
  *
+ * Additionally, you can define the constant DEBUG at compile time and the
+ * resulting interpreter will show the garbage that is collected.
+ *
  * Hector Ramon Jimenez - LP - Spring 2014 - FIB (UPC)
  */
 #header
@@ -160,6 +163,10 @@ public:
    */
   List();
   List(List *l);
+
+#ifdef DEBUG
+  ~List(){ cout << "[DEBUG] Removed: "; print(); }
+#endif
 
   void put(string product, int amount)
   {
@@ -431,36 +438,6 @@ void eval_assign(AST *node)
 }
 #endif
 
-void eval(AST *root)
-{
-  AST *current = root->down;
-
-  while(current != NULL)
-  {
-    switch(current->type)
-    {
-      case STDEV:
-        cout << stdev(current) << endl; break;
-
-      case UNITS:
-        cout << unitats(current) << endl; break;
-
-      case PRODS:
-        cout << productes(current) << endl; break;
-
-      case PRINT:
-        eval_print(current); break;
-
-#ifndef NO_INTERACTIVE
-      case EQUAL:
-        eval_assign(current); break;
-#endif
-    }
-
-    current = current->right;
-  }
-}
-
 /**
  * To avoid memory leaks we need to free the lists that
  * can not be referenced anymore.
@@ -478,6 +455,52 @@ void collect_garbage()
 
     // This can be used to clear the set at the same time we iterate it
     garbage.erase(it++);
+  }
+}
+
+void eval_instruction(AST *node)
+{
+  switch(node->type)
+  {
+    case STDEV:
+      cout << stdev(node) << endl; break;
+
+    case UNITS:
+      cout << unitats(node) << endl; break;
+
+    case PRODS:
+      cout << productes(node) << endl; break;
+
+    case PRINT:
+      eval_print(node); break;
+
+#ifndef NO_INTERACTIVE
+    case EQUAL:
+      eval_assign(node); break;
+#endif
+  }
+
+  // An instruction is independent, thus we can collect garbage
+  // safely
+  collect_garbage();
+}
+
+void eval(AST *root)
+{
+  AST *current = root->down;
+
+  try
+  {
+    while(current != NULL)
+    {
+      eval_instruction(current);
+      current = current->right;
+    }
+  }
+  catch(string exception)
+  {
+    cout << "error: " << exception << endl;
+    collect_garbage();
   }
 }
 
@@ -529,15 +552,7 @@ int main()
     if(errors - error_count() == 0)
     {
       ASTPrint(root);
-
-      try
-      {
-        eval(root);
-      }
-      catch(string exception)
-      {
-        cout << "error: " << exception << endl;
-      }
+      eval(root);
     }
 
     ASTFree(root);

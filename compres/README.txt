@@ -20,4 +20,7 @@ I was not sure whether the 'PRODUCTES' instruction should print the number
 of products or print the list contents, therefore I added an instruction
 to print the contents of a list: 'MOSTRAR'.
 
+Additionally, you can define the constant DEBUG at compile time and the
+resulting interpreter will show the garbage that is collected.
+
 Hector Ramon Jimenez - LP - Spring 2014 - FIB (UPC)
