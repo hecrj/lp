@@ -1,7 +1,7 @@
 -- Useful functions
--- variant of map that passes each element's index as second argument to f
-each :: (a -> Int -> b) -> [a] -> [b]
-each f l = zipWith f l [0..]
+-- variant of map that passes each element's index as first argument to f
+each :: (Int -> a -> b) -> [a] -> [b]
+each f = zipWith f [0..]
 
 
 -- Type class that represents a Point
@@ -12,9 +12,9 @@ class Point p where
 
   child :: p -> p -> [Int] -> Int
   child e1 e2 coords = (foldl (child' e1 e2) 0 coords) `div` 2 where
-    child' e1 e2 result x = if sel x e1 <= sel x e2
-      then result*2
-      else (result+1)*2
+    child' e1 e2 result x
+      | sel x e1 <= sel x e2 = result*2
+      | otherwise = (result+1)*2
 
   dist :: p -> p -> Double
   dist e1 e2 = sqrt $ sum diffComponents where
@@ -61,26 +61,26 @@ instance (Show p) => Show (Kd2nTree p) where
     show' node level = nodeStr ++ "\n" ++ childrenStr where
       nodeStr = show (point node) ++ " " ++ show (list node)
       childrenStr = foldr (++) "" (each (showChild (level+1)) (children node)) where
-        showChild _ Empty _ = ""
-        showChild level node current = indent ++ index ++ show' node level where
+        showChild _ _ Empty = ""
+        showChild level current node = indent ++ index ++ show' node level where
           indent = replicate (level*4) ' '
           index  = "<" ++ show current ++ "> "
 
 
 -- Kd2nTree functions
 insert :: Point p => Kd2nTree p -> p -> [Int] -> Kd2nTree p
-insert Empty p l = Node p l (take (2^(length l)) (repeat Empty))
-insert (Node point list children) p l = Node point list newChildren where
-  newChildren = each (insert' p l (child p point list)) children where
-    insert' p l selected child current = if selected == current
-      then insert child p l
-      else child
+insert Empty point list = Node point list (take (2^(length list)) (repeat Empty))
+insert (Node np nl nc) point list = Node np nl newChildren where
+  newChildren = each (selectedInsert point list (child point np nl)) nc where
+    selectedInsert point list selected current child
+      | selected == current = insert child point list
+      | otherwise = child
 
 build :: Point p => [(p, [Int])] -> Kd2nTree p
-build nodes = foldl (\t (p, l) -> insert t p l) Empty nodes
+build = foldl (\t (p, l) -> insert t p l) Empty
 
 buildIni :: Point p => [([Double], [Int])] -> Kd2nTree p
-buildIni nodes = foldl (\t (d, l) -> insert t (listToPoint d) l) Empty nodes
+buildIni = foldl (\t (d, l) -> insert t (listToPoint d) l) Empty
 
 
 -- Example set
