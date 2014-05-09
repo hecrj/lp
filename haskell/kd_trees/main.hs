@@ -1,7 +1,19 @@
 -- Useful functions
+intercalate :: Show s => String -> [s] -> String
+intercalate delim [] = ""
+intercalate delim [x] = show x
+intercalate delim (x:xs) = show x ++ delim ++ intercalate delim xs
+
 -- variant of map that passes each element's index as first argument to f
 each :: (Int -> a -> b) -> [a] -> [b]
 each f = zipWith f [0..]
+
+mapSelect :: (a -> b) -> (a -> b) -> Int -> [a] -> [b]
+mapSelect f1 f2 selected = each (ifSelected f1 f2 selected)
+  where
+    ifSelected f1 f2 selected current
+      | selected == current = f1
+      | otherwise = f2
 
 
 -- Type class that represents a Point
@@ -11,23 +23,22 @@ class Point p where
   listToPoint :: [Double] -> p
 
   child :: p -> p -> [Int] -> Int
-  child e1 e2 coords = (foldl (child' e1 e2) 0 coords) `div` 2 where
-    child' e1 e2 result x
-      | sel x e1 <= sel x e2 = result*2
-      | otherwise = (result+1)*2
+  child e1 e2 coords = (foldl (child' e1 e2) 0 coords) `div` 2
+    where
+      child' e1 e2 result x
+        | sel x e1 <= sel x e2 = result*2
+        | otherwise = (result+1)*2
 
   dist :: p -> p -> Double
-  dist e1 e2 = sqrt $ sum diffComponents where
+  dist e1 e2 = sqrt $ sum diffComponents
+    where
       diffComponents = [(sel i e2 - sel i e1)^2 | i <- [1..dim e1]]
 
   components :: p -> [Double]
   components p = [(sel i p) | i <- [1..dim p]]
 
   pointToString :: p -> String
-  pointToString p = "(" ++ intercalate "," (components p) ++ ")" where
-    intercalate delim [] = ""
-    intercalate delim [x] = show x
-    intercalate delim (x:xs) = show x ++ delim ++ intercalate delim xs
+  pointToString p = "(" ++ intercalate "," (components p) ++ ")"
 
   pointEquals :: p -> p -> Bool
   pointEquals e1 e2 = components e1 == components e2
@@ -57,24 +68,29 @@ data Kd2nTree p = Empty | Node { point :: p, list :: [Int], children :: [Kd2nTre
 
 instance (Show p) => Show (Kd2nTree p) where
   show Empty = ""
-  show node = show' node 0 where
-    show' node level = nodeStr ++ "\n" ++ childrenStr where
-      nodeStr = show (point node) ++ " " ++ show (list node)
-      childrenStr = foldr (++) "" (each (showChild (level+1)) (children node)) where
-        showChild _ _ Empty = ""
-        showChild level current node = indent ++ index ++ show' node level where
-          indent = replicate (level*4) ' '
-          index  = "<" ++ show current ++ "> "
+  show node = show' node 0
+    where
+      show' node level = nodeStr ++ "\n" ++ childrenStr
+        where
+          nodeStr = show (point node) ++ " " ++ show (list node)
+          childrenStr = foldr (++) "" (each (showChild (level+1)) (children node))
+            where
+              showChild _ _ Empty = ""
+              showChild level current node = indent ++ index ++ show' node level
+                where
+                  indent = replicate (level*4) ' '
+                  index  = "<" ++ show current ++ "> "
 
 
 -- Kd2nTree functions
 insert :: Point p => Kd2nTree p -> p -> [Int] -> Kd2nTree p
 insert Empty point list = Node point list (take (2^(length list)) (repeat Empty))
-insert (Node np nl nc) point list = Node np nl newChildren where
-  newChildren = each (selectedInsert point list (child point np nl)) nc where
-    selectedInsert point list selected current child
-      | selected == current = insert child point list
-      | otherwise = child
+insert (Node np nl nc) point list = Node np nl newChildren
+  where
+    newChildren = mapSelect (insert' point list) id selected nc
+      where
+        insert' point list node = insert node point list
+        selected = child point np nl
 
 build :: Point p => [(p, [Int])] -> Kd2nTree p
 build = foldl (\t (p, l) -> insert t p l) Empty
