@@ -98,6 +98,17 @@ build = foldl (\t (p, l) -> insert t p l) Empty
 buildIni :: Point p => [([Double], [Int])] -> Kd2nTree p
 buildIni = foldl (\t (d, l) -> insert t (listToPoint d) l) Empty
 
+get_all :: Kd2nTree p -> [(p, [Int])]
+get_all Empty = []
+get_all (Node point list children) = (point, list) : foldl (++) [] (map get_all children)
+
+remove :: (Point p, Eq p) => Kd2nTree p -> p -> Kd2nTree p
+remove tree point = build $ remove' point $ get_all tree
+  where
+    remove' point [] = []
+    remove' point ((x,l):xs)
+      | point == x = xs
+      | otherwise = (x,l) : remove' point xs
 
 -- Example set
 exampleSet :: Kd2nTree Point3d
