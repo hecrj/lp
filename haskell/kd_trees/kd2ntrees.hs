@@ -95,11 +95,13 @@ instance (Show p) => Show (Kd2nTree p) where
   show node = show' node 0 $ -1
     where
       show' Empty _ _ = ""
-      show' node level current = indent ++ prefix current ++ nodeStr ++ childrenStr
+      show' node level current = indent level ++ prefix current ++ nodeStr ++ childrenStr
         where
-          indent = replicate (level*4) ' '
           nodeStr = show (point node) ++ " " ++ show (list node) ++ "\n"
           childrenStr = foldr (++) "" (each (\x y -> show' y (level+1) x) (children node))
+          indent 0 = ""
+          indent 1 = " "
+          indent level = replicate (((level-1)*5)+1) ' '
           prefix (-1) = ""
           prefix index = '<' : show index ++ "> "
 
