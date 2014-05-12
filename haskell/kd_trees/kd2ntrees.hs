@@ -75,29 +75,33 @@ instance Point Point3d where
   listToPoint [x, y, z] = Point3d x y z
 
 instance Show Point3d where
-  show p = pointToString p
+  show = pointToString
 
 instance Eq Point3d where
-  e1 == e2 = pointEquals e1 e2
+  (==) = pointEquals
 
 
 -- Kd2nTree definition
 data Kd2nTree p = Empty | Node { point :: p, list :: [Int], children :: [Kd2nTree p] }
 
-instance (Show p) => Show (Kd2nTree p) where
-  show Empty = ""
-  show node = show' node 0
+instance (Point p, Eq p) => Eq (Kd2nTree p) where
+  t1 == t2 = (all (contains t2) t1Points) && length t1Points == length t2Points
     where
-      show' node level = nodeStr ++ "\n" ++ childrenStr
+      t1Points = get_points t1
+      t2Points = get_points t2
+
+
+instance (Show p) => Show (Kd2nTree p) where
+  show node = show' node 0 $ -1
+    where
+      show' Empty _ _ = ""
+      show' node level current = indent ++ prefix current ++ nodeStr ++ childrenStr
         where
-          nodeStr = show (point node) ++ " " ++ show (list node)
-          childrenStr = foldr (++) "" (each (showChild (level+1)) (children node))
-            where
-              showChild _ _ Empty = ""
-              showChild level current node = indent ++ index ++ show' node level
-                where
-                  indent = replicate (level*4) ' '
-                  index  = "<" ++ show current ++ "> "
+          indent = replicate (level*4) ' '
+          nodeStr = show (point node) ++ " " ++ show (list node) ++ "\n"
+          childrenStr = foldr (++) "" (each (\x y -> show' y (level+1) x) (children node))
+          prefix (-1) = ""
+          prefix index = '<' : show index ++ "> "
 
 
 -- Kd2nTree functions
@@ -105,9 +109,8 @@ insert :: Point p => Kd2nTree p -> p -> [Int] -> Kd2nTree p
 insert Empty point list = Node point list (take (2^(length list)) (repeat Empty))
 insert (Node np nl nc) point list = Node np nl newChildren
   where
-    newChildren = mapSelect (insert' point list) id selected nc
+    newChildren = mapSelect (\x -> insert x point list) id selected nc
       where
-        insert' point list node = insert node point list
         selected = child point np nl
 
 build :: Point p => [(p, [Int])] -> Kd2nTree p
@@ -120,16 +123,18 @@ get_all :: Kd2nTree p -> [(p, [Int])]
 get_all Empty = []
 get_all (Node point list children) = (point, list) : foldr (++) [] (map get_all children)
 
+get_points :: Kd2nTree p -> [p]
+get_points t = map fst $ get_all t
+
 remove :: (Point p, Eq p) => Kd2nTree p -> p -> Kd2nTree p
 remove Empty _ = Empty
 remove node@(Node np nl nc) point
   | point == np = build $ tail $ get_all node
   | otherwise = Node np nl newChildren
+  where
+    newChildren = mapSelect (\x -> remove x point) id selected nc
       where
-        newChildren = mapSelect (remove' point) id selected nc
-          where
-            remove' point node = remove node point
-            selected = child point np nl
+        selected = child point np nl
 
 contains :: (Point p, Eq p) => Kd2nTree p -> p -> Bool
 contains Empty _ = False
@@ -138,7 +143,7 @@ contains (Node np nl nc) point
   | otherwise = contains (nc!!(child point np nl)) point
 
 nearest :: Point p => Kd2nTree p -> p -> p
-nearest tree point = minimumBy (dist point) $ map fst $ get_all tree
+nearest tree point = minimumBy (dist point) $ get_points tree
 
 kdmap :: (p -> q) -> Kd2nTree p -> Kd2nTree q
 kdmap _ Empty = Empty
