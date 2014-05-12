@@ -56,21 +56,21 @@ class Point p where
   pointEquals e1 e2 = components e1 == components e2
 
   ptrans :: [Double] -> p -> p
-  ptrans t p = listToPoint $ zipWith (+) t $ components p
+  ptrans t = listToPoint . zipWith (+) t . components
 
   pscale :: Double -> p -> p
-  pscale s p = listToPoint $ map (*s) $ components p
+  pscale s = listToPoint . map (*s) . components
 
 
 -- Point3d definition
 data Point3d = Point3d { x :: Double, y :: Double, z :: Double }
 
 instance Point Point3d where
-  sel 1 p = x p
-  sel 2 p = y p
-  sel 3 p = z p
+  sel 1 = x
+  sel 2 = y
+  sel 3 = z
 
-  dim p = 3
+  dim _ = 3
 
   listToPoint [x, y, z] = Point3d x y z
 
@@ -124,7 +124,7 @@ get_all Empty = []
 get_all (Node point list children) = (point, list) : foldr (++) [] (map get_all children)
 
 get_points :: Kd2nTree p -> [p]
-get_points t = map fst $ get_all t
+get_points = map fst . get_all
 
 remove :: (Point p, Eq p) => Kd2nTree p -> p -> Kd2nTree p
 remove Empty _ = Empty
@@ -150,10 +150,10 @@ kdmap _ Empty = Empty
 kdmap f (Node point list children) = Node (f point) list $ map (kdmap f) children
 
 translation :: Point p => [Double] -> Kd2nTree p -> Kd2nTree p
-translation t = kdmap $ ptrans t
+translation = kdmap . ptrans
 
 scale :: Point p => Double -> Kd2nTree p -> Kd2nTree p
-scale s = kdmap $ pscale s
+scale = kdmap . pscale
 
 
 -- Example set
