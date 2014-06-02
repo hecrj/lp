@@ -13,10 +13,23 @@ mapSelect f1 selected = each (ifSelected f1 selected)
       | selected == current = f1
       | otherwise = id
 
+maximumBy :: Ord b => (a -> b) -> [a] -> a
+maximumBy f (x:xs) = maximumBy' f xs x $ f x
+  where
+    maximumBy' f [] max _ = max
+    maximumBy' f (x:xs) max currVal
+      | newVal > currVal = maximumBy' f xs x newVal
+      | otherwise = maximumBy' f xs max currVal
+      where
+        newVal = f x
+
 intercalate :: Show s => String -> [s] -> String
 intercalate delim [] = ""
 intercalate delim [x] = show x
 intercalate delim (x:xs) = show x ++ delim ++ intercalate delim xs
+
+join :: String -> [String] -> String
+join glue [x,y] = x ++ glue ++ y
 
 separate :: [String] -> String
 separate [] = ""
@@ -53,43 +66,53 @@ selectOption options = do
 
 
 -- Game types
-data GameType = UserVsCPU | CPUvsCPU
-
-gameTypes :: [GameType]
-gameTypes = [UserVsCPU, CPUvsCPU]
+data GameType = GameType { description :: String, factory :: GameFactory }
+type GameFactory = Board -> IO Game
 
 instance Show GameType where
-  show UserVsCPU = "User vs CPU"
-  show CPUvsCPU = "CPU vs CPU"
+  show = description
 
+gameTypes :: [GameType]
+gameTypes = [
+    GameType "User vs CPU" createUserVsCPU,
+    GameType "CPU vs CPU" createCPUVsCPU
+  ]
+
+createUserVsCPU :: GameFactory
+createUserVsCPU board = do
+  putStrLn "Select the strategy of the CPU player:"
+  cpu <- selectOption cpuPlayers
+  putStrLn "Who will make the first move?"
+  let player = Player "User" user 0
+  putOptions [player, cpu]
+  firstMove <- promptInt "Select option" 1 2
+  return (Game player cpu board (firstMove-1) 1)
+
+createCPUVsCPU :: GameFactory
+createCPUVsCPU board = do
+  putStrLn "Select the strategy of the first player:"
+  player1 <- selectOption cpuPlayers
+  putStrLn "Select the strategy of the second player:"
+  player2 <- selectOption cpuPlayers
+  return (Game player1 player2 board 0 1)
 
 -- Game
 data Game = Game { player1 :: Player, player2 :: Player, board :: Board,
   nowPlays :: Int, turn :: Int }
 
-create :: GameType -> Board -> IO Game
-
-create UserVsCPU board = do
-  putStrLn "Select the strategy of the CPU player:"
-  cpu <- selectOption cpuStrategies
-  putStrLn "Who will make the first move?"
-  putOptions [User, cpu]
-  firstMove <- promptInt "Select option" 1 2
-  return (Game (Player User 0) (Player cpu 0) board (firstMove-1) 1)
-
-create CPUvsCPU board = do
-  putStrLn "Select the strategy of the first player:"
-  strat1 <- selectOption cpuStrategies
-  putStrLn "Select the strategy of the second player:"
-  strat2 <- selectOption cpuStrategies
-  return (Game (Player strat1 0) (Player strat2 0) board 1 1)
+instance Show Game where
+  show (Game p1 p2 board _ turn) = scoreStr ++ "\n" ++ boardStr
+    where
+      scoreStr = join "  -  " $ each showWithScore [p1, p2]
+      showWithScore = (\i p -> "(P" ++ show (i+1) ++ ") " ++ (show p) ++ " " ++ (show $ score p))
+      boardStr = show board
 
 play :: Game -> IO ()
 play game@(Game player1 player2 board nowPlays turn)
   | turn > size board = finished game
   | otherwise = do
     let player = [player1, player2]!!nowPlays
-    action <- getAction game (strategy player)
+    action <- (strategy player) game
     play $ update game action
 
 update :: Game -> Action -> Game
@@ -100,26 +123,39 @@ update game@(Game p1 p2 board plays turn) action
     nextGame = (Game newPlayer1 newPlayer2 newBoard newPlays (turn+1))
     (newBoard, scored) = apply board action
     [newPlayer1, newPlayer2] = mapSelect
-      (\(Player strat score) -> Player strat (score+scored)) plays [p1, p2]
+      (\(Player name strat score) -> Player name strat (score+scored)) plays [p1, p2]
     newPlays
       | scored > 0 = plays
       | otherwise = (plays+1) `mod` 2
 
 finished :: Game -> IO ()
-finished (Game p1 p2 board _ _) = do
-  draw board
-  putStrLn "Game finished!"
+finished game = do
+  putStrLn $ show game
+  putStrLn $ status game
 
+status :: Game -> String
+status (Game p1 p2 _ _ _)
+  | score1 > score2 = wins p1 1
+  | score1 < score2 = wins p2 2
+  | otherwise = "Game drawn!"
+  where
+    score1 = score p1
+    score2 = score p2
+    wins p i = "(P" ++ show i ++ ") " ++ show p ++ " wins!"
 
 -- Board
+data Board = Board { rows :: Int, cols :: Int, cells :: [[Cell]]}
 data Cell = Empty | S | O deriving Eq
+
+instance Show Board where
+  show (Board _ _ cells) = separate rows
+    where
+      rows = map ((\x -> " " ++ x ++ " ") . (intercalate " | ")) cells
 
 instance Show Cell where
   show Empty = " "
   show S = "S"
   show O = "O"
-
-data Board = Board { rows :: Int, cols :: Int, content :: [[Cell]]}
 
 readBoard :: IO Board
 readBoard = do
@@ -133,59 +169,80 @@ newBoard rows cols = Board rows cols [take cols $ repeat Empty | _ <- [1..rows]]
 size :: Board -> Int
 size (Board rows cols _) = rows * cols
 
-draw :: Board -> IO ()
-draw (Board _ _ content) = drawContent content
+getCell :: Board -> Int -> Int -> Maybe Cell
+getCell (Board rows cols cells) row col
+  | row >= 0 && col >= 0 && row < rows && col < cols = Just $ (cells!!row)!!col
+  | otherwise = Nothing
 
-drawContent :: [[Cell]] -> IO ()
-drawContent content = do
-  putStrLn $ separate $ map ((\x -> " " ++ x ++ " ") . (intercalate " | ")) content
-
-getCell :: Board -> Int -> Int -> Cell
-getCell board row = (!!) ((content board)!!row)
+getRelativeCells :: Board -> Int -> Int -> [(Int, Int)] -> [Maybe Cell]
+getRelativeCells _ _ _ [] = []
+getRelativeCells board row col ((i,j):xs) =
+  getCell board (row+i) (col+j) : getRelativeCells board row col xs
 
 isValid :: Board -> Action -> Bool
-isValid board (Action row col _) = getCell board row col == Empty
+isValid board (Action row col _) = getCell board row col == Just Empty
 
 apply :: Board -> Action -> (Board, Int)
-apply (Board rows cols content) (Action row col letter) = (newBoard, scored)
+apply b@(Board rows cols cells) a@(Action row col letter) = (newBoard, scored)
   where
     newBoard = Board rows cols updatedCells
-    scored = 0
-    updatedCells = mapSelect (mapSelect (\_ -> letter) col) row content
+    scored = actionScore b a
+    updatedCells = mapSelect (mapSelect (\_ -> letter) col) row cells
 
+actionScore :: Board -> Action -> Int
+actionScore board (Action row col S) =
+  length $ filter (\x -> x == [Just O, Just S]) $ map (getRelativeCells board row col) dirs
+  where
+    dirs = [[(i, j), (i*2, j*2)] | i <- [-1..1], j <- [-1..1], i /= 0 || j /= 0]
+
+actionScore board (Action row col O) =
+  length $ filter (\x -> x == [Just S, Just S]) $ map (getRelativeCells board row col) dirs
+  where
+    dirs = [[(i, j), (-i,-j)] | i <- [-1..0], j <- [-1..1], i /= 0 || (j /= 0 && j /= 1)]
 
 -- Strategies
-data Strategy = User | Random
-data Player = Player { strategy :: Strategy, score :: Int }
+type Strategy = Game -> IO Action
+data Player = Player { name :: String, strategy :: Strategy, score :: Int }
 data Action = Action { row :: Int, col :: Int, letter :: Cell }
 
-instance Show Strategy where
-  show User = "User"
-  show Random = "Random"
-
 instance Show Player where
-  show (Player strat score) = show strat ++ " " ++ show score
+  show = name
 
-cpuStrategies :: [Strategy]
-cpuStrategies = [Random]
+cpuPlayers :: [Player]
+cpuPlayers = [
+    Player "Random" rand 0,
+    Player "Brute force" brute 0
+  ]
 
-getAction :: Game -> Strategy -> IO Action
-
-getAction game@(Game player1 player2 board _ turn) User = do
-  putStrLn $ "Turn " ++ (show turn)
-  putStrLn $ (show player1) ++ "  -  " ++ (show player2)
-  draw board
+user :: Strategy
+user game@(Game player1 player2 board _ turn) = do
+  putStrLn $ "Turn " ++ show turn
+  putStrLn $ show game
   row <- promptInt "Enter the row you want to modify" 1 $ rows board
   col <- promptInt "Enter the column yo want to modify" 1 $ cols board
   putStrLn "Select the letter you want to add:"
   letter <- selectOption [S, O]
   return $ Action (row-1) (col-1) letter
 
-getAction (Game _ _ board _ _) Random = do
+rand :: Strategy
+rand (Game _ _ board _ _) = do
   row <- randomRIO (0, (rows board)-1)
   col <- randomRIO (0, (cols board)-1)
   letter <- randomRIO (0, 1)
   return $ Action row col $ [S, O]!!letter
+
+brute :: Strategy
+brute game@(Game _ _ board _ _)
+  | actionScore board action == 0 = rand game
+  | otherwise = return action
+  where
+    action = bestAction board
+
+bestAction :: Board -> Action
+bestAction board@(Board rows cols _) = maximumBy (actionScore board) availableActions
+  where
+    availableActions = filter (isValid board) allActions
+    allActions = [ Action i j letter | i <- [0..rows-1], j <- [0..cols-1], letter <- [S, O]]
 
 
 -- Main
@@ -199,5 +256,5 @@ main = do
 
   gameType <- selectOption gameTypes
   board <- readBoard
-  game <- create gameType board
+  game <- (factory gameType) board
   play game
