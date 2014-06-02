@@ -1,0 +1,64 @@
+import haltex
+
+documentclass "beamer"
+
+usepackage "inputenc", options => "utf8"
+
+import haltex.vbasic
+
+usetheme "Ilmenau"
+
+print "\\setbeamertemplate{navigation symbols}{}
+\\setbeamertemplate{footline}[page number]{}"
+
+title "Visual Basic"
+titlegraphic "\\includegraphics[scale=0.55]{VisualBasicLogo.png}"
+author "Héctor Ramón"
+date "4 de juny 2014"
+
+document:
+  frame "\\titlepage"
+
+  frame "Introducció":
+    description:
+      item "Paradigma"; p "*Event-driven* i *object-based*"
+      item "Desenvolupat per"; p "Microsoft"
+      item "Dates"; p "1991 (presentació), 1998 (última versió)"
+      item "Utilitat"; p "Desenvolupament ràpid d'aplicacions amb interfície gràfica d'usuari"
+      item "Influenciat per"; p "BASIC, QuickBASIC"
+
+  frame "Característiques", options => "fragile":
+    description:
+      item "IDE propi"; p "Dissenyador de GUIs, editor de codi..."
+      item "*Object-based*"; p "Encapsula estat i operacions dins d'objectes"
+      item "*Event-driven*"; p "El codi s'executa quan ocorren certs events"
+      vbasic:
+        c "
+Private Sub Form_Load()
+    MsgBox \"Hello world!\"
+End Sub"
+
+      item "Imperatiu"
+
+  frame "Característiques", options => "fragile":
+    description:
+      item "Tipat fort i estàtic"; p "Però amb tipus |Variant| i |Object|"
+      vbasic:
+        c "
+Dim obj As Object ' Late binding
+' [...]
+obj.attr = True   ' Pot fallar en runtime"
+
+      item "Forta integració amb *Windows*"; p "|Windows API|"
+      item "Codi organtizat en mòduls"; hfill
+      itemize:
+        item; p "Form modules"
+        item; p "Standard modules"
+        item; p "Class modules"
+      item "No suportat per Microsoft des del 2008"
+
+  frame "Aplicacions":
+    description:
+      item "Visual Basic for Applications"; p "Microsoft Office, SolidWorks, AutoCAD"
+      item "Visual Basic .NET"; p "Successor de Visual Basic, utilitza el .NET Framework"
+      item ""
