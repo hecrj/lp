@@ -40,7 +40,7 @@ End Sub"
 
       item "Imperatiu"
 
-  frame "Característiques", options => "fragile":
+  frame "Característiques (II)", options => "fragile":
     description:
       item "Tipat fort i estàtic"; p "Però amb tipus |Variant| i |Object|"
       vbasic:
@@ -55,10 +55,65 @@ obj.attr = True   ' Pot fallar en runtime"
         item; p "Form modules"
         item; p "Standard modules"
         item; p "Class modules"
-      item "No suportat per Microsoft des del 2008"
+      item "No suportat per Microsoft des del 2008"; p "*It Just Works*"
+
+  frame "Data types", options => "fragile":
+    description:
+      item "Byte"; p "8 bit, unsigned"
+      item "Integer"; p "16 bit, signed"
+      item "Long"; p "32 bit, signed"
+      item "Single"; p "32 bit float"
+      item "Double"; p "64 bit IEEE float"
+
+      vbasic:
+        c "
+Dim pi as Double
+pi=3.141592653589
+pi=Round(pi,2) 'Arrodoneix a dos decimals
+Print pi 'Imprimeix 3.14"
+
+  frame "Data types (II)", options => "fragile":
+    description:
+      item "Currency"; p "4 decimals exactes"
+      item "String"
+      item "Date"
+      item "Object, Variant"; p "*Late binding*"
+      item "Collection"; p "Array associatiu de |Variant|s"
+      item "Structure, Enumeration..."; hfill
+
+      vbasic:
+        c "
+Dim MyArray(9)
+For i = 0 To 9
+  MyArray(i) = i
+Next
+For Each Item In MyArray
+  Debug.Print Item
+Next"
+
+  frame "Classes", options => "fragile":
+    description:
+      item "Declaració"; p "Mòdul amb extensió |.cls|"
+      item "Herència?"; p "Només d'interfícies"
+
+      vbasic:
+        c "
+' cSpeaker.cls
+Public Sub Speak()
+End Sub
+"
+
+      vbasic:
+        c "
+' cHuman.cls
+Implements cSpeaker
+Private Sub cHuman_Speak()
+    Debug.Print \"Hello!\"
+End Sub
+"
 
   frame "Aplicacions":
     description:
       item "Visual Basic for Applications"; p "Microsoft Office, SolidWorks, AutoCAD"
       item "Visual Basic .NET"; p "Successor de Visual Basic, utilitza el .NET Framework"
-      item ""
+      item "VBScript"; p "|Active Server Pages| o *ASP*"
