@@ -21,40 +21,55 @@ document:
 
   frame "Introducció":
     description:
-      item "Paradigma"; p "*Event-driven* i *object-based*"
+      item "Paradigmes"; p "*Event-driven* i *object-based*"
       item "Desenvolupat per"; p "Microsoft"
       item "Dates"; p "1991 (presentació), 1998 (última versió)"
       item "Utilitat"; p "Desenvolupament ràpid d'aplicacions amb interfície gràfica d'usuari"
       item "Influenciat per"; p "BASIC, QuickBASIC"
 
-  frame "Característiques", options => "fragile":
+  frame "Visual Studio 6":
+    includegraphics "visualstudio6.jpg", options => "scale=0.5"
+
+  frame "Paradigmes", options => "fragile":
     description:
-      item "IDE propi"; p "Dissenyador de GUIs, editor de codi..."
-      item "*Object-based*"; p "Encapsula estat i operacions dins d'objectes"
       item "*Event-driven*"; p "El codi s'executa quan ocorren certs events"
       vbasic:
-        c "
-Private Sub Form_Load()
-    MsgBox \"Hello world!\"
-End Sub"
-
-      item "Imperatiu"
-
-  frame "Característiques (II)", options => "fragile":
-    description:
-      item "Tipat fort i estàtic"; p "Però amb tipus |Variant| i |Object|"
+          c "
+  Private Sub Form_Load()
+      MsgBox \"Hello world!\"
+  End Sub"
+      item "*Object-based*"; p "Encapsula estat i operacions dins d'objectes"
       vbasic:
         c "
-Dim obj As Object ' Late binding
-' [...]
-obj.attr = True   ' Pot fallar en runtime"
+Set Dict = New Dictionary
+Dict.Add \"Key\", \"Value\"
+"
 
-      item "Forta integració amb *Windows*"; p "|Windows API|"
+  frame "Sistema de tipus", options => "fragile":
+    description:
+      item "Tipat fort i estàtic"; hfill
+      vbasic:
+        c "
+Dim i As Integer
+Dim s As String
+i = 2
+s = \"Hola\"
+Debug.Print s + 2 ' Error"
+      item "Però amb tipus |Variant| i |Object|"; hfill
+      vbasic:
+        c "
+Dim x  ' Variant, per defecte
+x = \"Some string\"
+x = 3  ' Late binding"
+
+  frame "Altres característiques", options => "fragile":
+    description:
       item "Codi organtizat en mòduls"; hfill
       itemize:
         item; p "Form modules"
         item; p "Standard modules"
         item; p "Class modules"
+      item "Forta integració amb *Windows*"; p "|Windows API|"
       item "No suportat per Microsoft des del 2008"; p "*It Just Works*"
 
   frame "Data types", options => "fragile":
@@ -64,32 +79,31 @@ obj.attr = True   ' Pot fallar en runtime"
       item "Long"; p "32 bit, signed"
       item "Single"; p "32 bit float"
       item "Double"; p "64 bit IEEE float"
-
-      vbasic:
-        c "
-Dim pi as Double
-pi=3.141592653589
-pi=Round(pi,2) 'Arrodoneix a dos decimals
-Print pi 'Imprimeix 3.14"
+      item "Currency"; p "4 decimals exactes"
+      item "String"; p "Unicode"
+      item "Date"; p "Des del 01/01/0100 al 31/12/9999"
+      item "Object, Variant"; p "*Late binding*"
 
   frame "Data types (II)", options => "fragile":
     description:
-      item "Currency"; p "4 decimals exactes"
-      item "String"
-      item "Date"
-      item "Object, Variant"; p "*Late binding*"
-      item "Collection"; p "Array associatiu de |Variant|s"
-      item "Structure, Enumeration..."; hfill
-
+      item "Structure"; hfill
       vbasic:
         c "
-Dim MyArray(9)
-For i = 0 To 9
-  MyArray(i) = i
-Next
-For Each Item In MyArray
-  Debug.Print Item
-Next"
+Type Point
+  x As Double
+  y As Double
+End Type"
+      item "Enumeration"; hfill
+      vbasic:
+        c "
+Enum Colors
+  Red
+  Green
+  Blue
+End Enum"
+      item "Arrays"; hfill
+      vbasic:
+        c "Dim MyArray(9)"
 
   frame "Classes", options => "fragile":
     description:
@@ -117,3 +131,18 @@ End Sub
       item "Visual Basic for Applications"; p "Microsoft Office, SolidWorks, AutoCAD"
       item "Visual Basic .NET"; p "Successor de Visual Basic, utilitza el .NET Framework"
       item "VBScript"; p "|Active Server Pages| o *ASP*"
+
+  frame "Macro virus", options => "fragile":
+    description:
+      item "Microsoft Word i Excel fan servir Visual Basic per definir macros"; hfill
+      itemize:
+        item; p "Automacros"
+        item; p "Fàcils d'escriure"
+        item; p "Tothom intercanvia documents"
+        item; p "Multiplataforma"
+      item "Aparició de macro virus"; p "Melissa, Laroux..."
+
+  frame "Macro virus (II)":
+    center:
+      includegraphics "macro_security.jpg", options => "scale=0.5"; hfill
+      includegraphics "macros.jpg", options => "scale=0.5"
