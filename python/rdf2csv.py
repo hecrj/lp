@@ -127,7 +127,8 @@ class ProgressBar(object):
         if current % self.percentil == 0 or current == self.total:
             progress = int((100 * current) / float(self.total))
             step = progress / 10
-            sys.stdout.write('\r{0}... [{1}{2}] {3}%'.format(self.message, '#'*step, ' '*(10-step), progress))
+            sys.stdout.write('\r{0}... [{1}{2}] {3}%'.format(self.message, '#'*step,
+                                                             ' '*(10-step), progress))
             sys.stdout.flush()
 
 
