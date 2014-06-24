@@ -1,3 +1,16 @@
-pccts/
+pccts
+.idea
 *.csv
 *.rdf
+*.aux
+*.log
+*.nav
+*.vrb
+*.toc
+*.gif
+*.out
+*.snm
+*.pyc
+*.o
+*.hi
+*.tex

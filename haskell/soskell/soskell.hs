@@ -96,6 +96,7 @@ createCPUVsCPU board = do
   player2 <- selectOption cpuPlayers
   return (Game player1 player2 board 0 1)
 
+
 -- Game
 data Game = Game { player1 :: Player, player2 :: Player, board :: Board,
   nowPlays :: Int, turn :: Int }
@@ -142,6 +143,7 @@ status (Game p1 p2 _ _ _)
     score1 = score p1
     score2 = score p2
     wins p i = "(P" ++ show i ++ ") " ++ show p ++ " wins!"
+
 
 -- Board
 data Board = Board { rows :: Int, cols :: Int, cells :: [[Cell]]}
@@ -199,6 +201,7 @@ actionScore board (Action row col O) =
   length $ filter (\x -> x == [Just S, Just S]) $ map (getRelativeCells board row col) dirs
   where
     dirs = [[(i, j), (-i,-j)] | i <- [-1..0], j <- [-1..1], i /= 0 || (j /= 0 && j /= 1)]
+
 
 -- Strategies
 type Strategy = Game -> IO Action

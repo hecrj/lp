@@ -11,40 +11,42 @@ from rdf2csv import Restaurant
 
 
 class Bicing(object):
-    def __init__(self, url='http://wservice.viabicing.cat/getstations.php?v=1'):
+    """ Lets to find the best bicing stations near any place """
+    def __init__(self, url="http://wservice.viabicing.cat/getstations.php?v=1"):
         data = urllib2.urlopen(url).read()
         xml = ElementTree.fromstring(data)
-        self.stations = [self.Station(station) for station in xml.iter('station')]
+        self.stations = [self.Station(station) for station in xml.iter("station")]
 
     def near(self, place, max_distance=1000):
-        station_distances = []
+        routes = []
 
         for station in self.stations:
-            dist = distance(place, station)
-            if dist <= max_distance:
-                station_distances.append((station, dist))
+            if station.is_open():
+                route = self.Route(station, place)
 
-        return sorted(station_distances, key=lambda tup: tup[1])
+                if route.distance <= max_distance:
+                    routes.append(route)
+        # Sort by station distance
+        return sorted(routes, key=lambda route: route.distance)
 
     def parking(self, place):
-        return filter(lambda station: station[0].slots > 0, self.near(place))
+        return filter(lambda route: route.station.slots > 0, self.near(place))
 
     def depart(self, place):
-        return filter(lambda station: station[0].bikes > 0, self.near(place))
+        return filter(lambda route: route.station.bikes > 0, self.near(place))
 
     class Station(object):
+        """ Represents a bicing station """
         def __init__(self, xml):
-            self.id = int(xml.find('id').text)
-
-            for attr in ['lat', 'long']:
+            for attr in ["lat", "long"]:
                 setattr(self, attr, float(xml.find(attr).text))
 
-            for attr in ['bikes', 'slots']:
+            for attr in ["bikes", "slots"]:
                 setattr(self, attr, int(xml.find(attr).text))
 
-            self.street = HTMLParser().unescape(xml.find('street').text).encode("utf-8").strip()
-            self.streetnumber = xml.find('streetNumber').text or "N/A"
-            self.status = xml.find('status').text
+            self.street = HTMLParser().unescape(xml.find("street").text).encode("utf-8").strip()
+            self.streetnumber = xml.find("streetNumber").text or "N/A"
+            self.status = xml.find("status").text
 
         @property
         def address(self):
@@ -55,7 +57,25 @@ class Bicing(object):
             return (self.lat, self.long)
 
         def is_open(self):
-            return self.status == 'OPN'
+            return self.status == "OPN"
+
+    class Route(object):
+        """ A route relates a bicing station with a place """
+        def __init__(self, station, place):
+            self.station = station
+            self.place = place
+            self.distance = distance(station, place)
+
+        def summary(self, slots=False, bikes=False):
+            s = self.station.address
+
+            if slots:
+                s += " (%s)" % inflect("slot", self.station.slots)
+
+            if bikes:
+                s += " (%s)" % inflect("bike", self.station.bikes)
+
+            return s + " (%.3f m)" % self.distance
 
 
 def distance(place1, place2):
@@ -81,10 +101,13 @@ def distance(place1, place2):
     return arc * 6373000.0
 
 
+def inflect(string, num):
+    """ Useful to pluralize simple words """
+    return "1 " + string if num == 1 else "%d %ss" % (num, string)
+
+
 def match(name, query):
-    """
-    Tells whether a name satisfies a given query
-    """
+    """ Tells whether a name satisfies a given query """
     if isinstance(query, basestring):
         return query in name
 
@@ -101,12 +124,8 @@ def match(name, query):
         return True
 
 
-def table_cols(row, type="td"):
-    print "\n".join(["<%s>%s</%s>" % (type, col, type) for col in row])
-
-
-# A simple context manager to write fancy HTML
 class tag:
+    """ A simple context manager to write fancy HTML """
     def __init__(self, name):
         self.name = name
 
@@ -117,6 +136,11 @@ class tag:
         print "</%s>" % self.name
 
 
+def table_cols(row, type="td"):
+    """ Transforms a list in HTML table columns """
+    print "\n".join(["<%s>%s</%s>" % (type, col, type) for col in row])
+
+
 if __name__ == "__main__":
     import sys
 
@@ -124,12 +148,12 @@ if __name__ == "__main__":
         # Safe eval
         query = ast.literal_eval(sys.argv[1])
     except IndexError:
-        query = ''
+        query = ""
     except SyntaxError:
         raise RuntimeError("Invalid query.")
 
-    with open('restaurants.csv', 'r') as f:
-        reader = csv.reader(f, delimiter='\t')
+    with open("restaurants.csv", "r") as f:
+        reader = csv.reader(f, delimiter="\t")
         reader.next()
         # Select the restaurants that match the query
         restaurants = [Restaurant.load(row) for row in reader if match(row[0], query)]
@@ -143,24 +167,24 @@ if __name__ == "__main__":
     with tag("head"):
         print '<meta charset="UTF-8">'
 
-    with tag('body'):
-        with tag('table'):
+    with tag("body"):
+        with tag("table"):
             # Header row
-            with tag('tr'):
+            with tag("tr"):
                 table_cols(Restaurant.ATTRS, type="th")
-                table_cols(['parking stations', 'departure stations'], type="th")
+                table_cols(["parking stations", "departure stations"], type="th")
 
             # Table contents
             for restaurant in restaurants:
-                with tag('tr'):
+                with tag("tr"):
                     table_cols(restaurant.attrs())
 
-                    with tag('td'):
-                        with tag('ol'):
-                            for station in bicing.parking(restaurant):
-                                print "<li>%s (%.3f m)</li>" % (station[0].address, station[1])
+                    with tag("td"):
+                        with tag("ol"):
+                            for route in bicing.parking(restaurant):
+                                print "<li>%s</li>" % route.summary(slots=True)
 
-                    with tag('td'):
-                        with tag('ol'):
-                            for station in bicing.depart(restaurant):
-                                print "<li>%s (%f m)</li>" % (station[0].address, station[1])
+                    with tag("td"):
+                        with tag("ol"):
+                            for route in bicing.depart(restaurant):
+                                print "<li>%s</li>" % route.summary(bikes=True)

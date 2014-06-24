@@ -38,6 +38,7 @@ class Restaurant(object):
         self.name = ' '.join(self.name).split(' *')[0]
         self.street_name = ' '.join(self.street_name)
         self.streetnumber = self.streetnumber.replace('*', '-')
+        self.clean()
 
     @property
     def address(self):
