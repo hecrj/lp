@@ -1,0 +1,148 @@
+import haltex
+
+documentclass "beamer"
+
+usepackage "inputenc", options => "utf8"
+
+import haltex.vbasic
+
+usetheme "Ilmenau"
+
+print "\\setbeamertemplate{navigation symbols}{}
+\\setbeamertemplate{footline}[page number]{}"
+
+title "Visual Basic"
+titlegraphic "\\includegraphics[scale=0.55]{VisualBasicLogo.png}"
+author "Héctor Ramón"
+date "4 de juny 2014"
+
+document:
+  frame "\\titlepage"
+
+  frame "Introducció":
+    description:
+      item "Paradigmes"; p "*Event-driven* i *object-based*"
+      item "Desenvolupat per"; p "Microsoft"
+      item "Dates"; p "1991 (presentació), 1998 (última versió)"
+      item "Utilitat"; p "Desenvolupament ràpid d'aplicacions amb interfície gràfica d'usuari"
+      item "Influenciat per"; p "BASIC, QuickBASIC"
+
+  frame "Visual Studio 6":
+    includegraphics "visualstudio6.jpg", options => "scale=0.5"
+
+  frame "Paradigmes", options => "fragile":
+    description:
+      item "*Event-driven*"; p "El codi s'executa quan ocorren certs events"
+      vbasic:
+          c "
+  Private Sub Form_Load()
+      MsgBox \"Hello world!\"
+  End Sub"
+      item "*Object-based*"; p "Encapsula estat i operacions dins d'objectes"
+      vbasic:
+        c "
+Set Dict = New Dictionary
+Dict.Add \"Key\", \"Value\"
+"
+
+  frame "Sistema de tipus", options => "fragile":
+    description:
+      item "Tipat fort i estàtic"; hfill
+      vbasic:
+        c "
+Dim i As Integer
+Dim s As String
+i = 2
+s = \"Hola\"
+Debug.Print s + 2 ' Error"
+      item "Però amb tipus |Variant| i |Object|"; hfill
+      vbasic:
+        c "
+Dim x  ' Variant, per defecte
+x = \"Some string\"
+x = 3  ' Late binding"
+
+  frame "Altres característiques", options => "fragile":
+    description:
+      item "Codi organtizat en mòduls"; hfill
+      itemize:
+        item; p "Form modules"
+        item; p "Standard modules"
+        item; p "Class modules"
+      item "Forta integració amb *Windows*"; p "|Windows API|"
+      item "No suportat per Microsoft des del 2008"; p "*It Just Works*"
+
+  frame "Data types", options => "fragile":
+    description:
+      item "Byte"; p "8 bit, unsigned"
+      item "Integer"; p "16 bit, signed"
+      item "Long"; p "32 bit, signed"
+      item "Single"; p "32 bit float"
+      item "Double"; p "64 bit IEEE float"
+      item "Currency"; p "4 decimals exactes"
+      item "String"; p "Unicode"
+      item "Date"; p "Des del 01/01/0100 al 31/12/9999"
+      item "Object, Variant"; p "*Late binding*"
+
+  frame "Data types (II)", options => "fragile":
+    description:
+      item "Structure"; hfill
+      vbasic:
+        c "
+Type Point
+  x As Double
+  y As Double
+End Type"
+      item "Enumeration"; hfill
+      vbasic:
+        c "
+Enum Colors
+  Red
+  Green
+  Blue
+End Enum"
+      item "Arrays"; hfill
+      vbasic:
+        c "Dim MyArray(9)"
+
+  frame "Classes", options => "fragile":
+    description:
+      item "Declaració"; p "Mòdul amb extensió |.cls|"
+      item "Herència?"; p "Només d'interfícies"
+
+      vbasic:
+        c "
+' cSpeaker.cls
+Public Sub Speak()
+End Sub
+"
+
+      vbasic:
+        c "
+' cHuman.cls
+Implements cSpeaker
+Private Sub cHuman_Speak()
+    Debug.Print \"Hello!\"
+End Sub
+"
+
+  frame "Aplicacions":
+    description:
+      item "Visual Basic for Applications"; p "Microsoft Office, SolidWorks, AutoCAD"
+      item "Visual Basic .NET"; p "Successor de Visual Basic, utilitza el .NET Framework"
+      item "VBScript"; p "|Active Server Pages| o *ASP*"
+
+  frame "Macro virus", options => "fragile":
+    description:
+      item "Microsoft Word i Excel fan servir Visual Basic per definir macros"; hfill
+      itemize:
+        item; p "Automacros"
+        item; p "Fàcils d'escriure"
+        item; p "Tothom intercanvia documents"
+        item; p "Multiplataforma"
+      item "Aparició de macro virus"; p "Melissa, Laroux..."
+
+  frame "Macro virus (II)":
+    center:
+      includegraphics "macro_security.jpg", options => "scale=0.5"; hfill
+      includegraphics "macros.jpg", options => "scale=0.5"

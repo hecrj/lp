@@ -1,0 +1,237 @@
+import haltex
+
+documentclass "article", options=>"a4paper,11pt"
+
+usepackage "inputenc", options => "utf8"
+usepackage "babel", options => "catalan"
+usepackage "graphicx"
+usepackage "hyperref", options => "colorlinks,linkcolor=black,urlcolor=blue,citecolor=blue"
+usepackage "caption", options => "justification=centering,labelfont=bf"
+usepackage "xcolor"
+
+import haltex.vbasic
+
+def bib label, title, _url, author => none:
+  bibitem label
+  p "**%s**" % title
+  p "\\\\|%s|" % author if not author.none?
+  br
+  url _url
+
+
+document:
+  cover title => "Visual Basic",
+    subject => "Llenguatges de Programació",
+    authors => ["Héctor Ramón Jiménez"],
+    footer => "Facultat d'Informàtica de Barcelona"
+
+  tableofcontents
+  clearpage
+
+  section "Introducció"
+  p "|Visual Basic| és un llenguatge de programació desenvolupat per |Microsoft| i presentant l'any 1991. El seu
+  principal objectiu és permetre el desenvolupament ràpid d'aplicacions, sobretot en entorn |Windows|, mitjançant
+  un entorn de desenvolupament integrat o *IDE* **propi** i una **programació dirigida per events**
+  i **basada en objectes**."
+  br 0.2
+  p "La seva principal influència és |BASIC|, un llenguatge que va apropar la programació als computadors domèstics
+  i estudiants entre els anys 70 i 80."
+
+  section "Visual Studio"
+  p "|Visual Studio| és un entorn de desenvolupament integrat propi de |Visual Basic| que permet el desenvolupament
+  d'aplicacions construint la seva **interfície gràfica** i definint els diferents **events** que es disparen
+  quan l'usuari interactúa amb l'aplicació."
+
+  center:
+    figure options => "h!":
+      includegraphics "../slides/visualstudio6.jpg", options => "scale=0.6"
+      caption "Interfície gràfica principal de |Visual Studio|"
+
+
+  section "Paradigmes"
+  p "|Visual Basic| es basa principalment en dos paradigmes de programació: *event-driven* i *object-based*."
+
+  subsection pstyle "*Event-driven*"
+  p "El fluxe d'execució de l'aplicació ve determinat per events, com ara accions de l'usuari. El programador
+  definex el codi que s'ha d'executar quan certs events es disparen."
+  
+  center:
+    figure options => "h!":
+      vbasic:
+        c "
+  Private Sub Form_Load()
+      MsgBox \"Hello world!\"
+  End Sub"
+      caption "Mostra una finestra amb |Hello world!| al carregar l'aplicació"
+
+  subsection pstyle "*Object-based*"
+  p "|Visual Basic| permet **encapsular** estat i operacions dins d'objectes. Es diferencia, però, d'un
+  llenguatge **orientat a objectes** perque |Visual Basic| només permet herència d'interfícies, és a dir,
+  una classe no és capaç d'heredar mètodes ja implementats per la classe pare. Per aquest motiu es diu que
+  |Visual Basic| és **basat en objectes**."
+
+  center:
+    figure options => "h!":
+      vbasic:
+        c "
+Set Dict = New Dictionary
+Dict.Add \"Key\", \"Value\"
+"
+      caption "Exemple d'ús d'un diccionari"
+
+  clearpage
+  section "Sistema de tipus"
+  p "|Visual Basic| té **tipat estàtic**, el tipus d'una variable no varia durant l'execució de l'aplicació,
+  i és **fortament tipat**, no permet operacions bàsiques entre tipus diferents."
+  
+  center:
+    figure options => "h!":
+      vbasic:
+        c "
+Dim i As Integer
+Dim s As String
+i = 2
+s = \"Hola\"
+Debug.Print s + 2 ' Error"
+      caption "Exemple del sistema de tipus de |Visual Basic|"
+
+  p "De totes maneres, |Visual Basic| suporta la declaració de variables amb tipus |Variant| i |Object|.
+  El primer permet que qualsevol tipus de valor pugui ser assignat a la variable, mentre que el segon
+  només permet que aquests valors siguin referències a objectes."
+  
+  center:
+    figure options => "h!":
+      vbasic:
+        c "
+Dim x  ' Variant, per defecte
+x = \"Some string\"
+x = 3  ' Late binding"
+      caption "Exemple amb una variable de tipus |Variant|"
+
+  section "Altres característiques"
+  subsection "Codi organtizat en mòduls"
+  p "El codi de |Visual Basic| s'organtiza en mòduls que poden ser de tres tipus:"
+
+  description:
+    item "Form modules"; p "Conté el codi que s'ha d'executar quan es disparen certs events d'una part determinada
+    l'interfície gràfica."
+    item "Standard modules"; p "Conté codi comú de l'aplicació que pot ser utilitzat per altres mòduls."
+    item "Class modules"; p "Conté la definició d'una classe."
+
+
+  subsection pstyle "Forta integració amb |Windows|"
+  p "|Visual Basic| té accés a la API de |Windows| que facilita el desenvolupament d'aplicacions que han d'interactuar
+  amb aquest sistema operatiu."
+
+  subsection pstyle "Actualment no suportat per |Microsoft|"
+  p "|Microsoft| va deixar de donar suport al llenguatge a l'any 2008. Actualment, però, es comprometen a que
+  qualsevol aplicació feta amb |Visual Basic| com a mínim funcioni en |Windows Vista|, |Windows Server 2008|,
+  |Windows 7| i |Windows 8|."
+
+
+  section "Classes"
+  p "|Visual Basic| permet al programador declarar les seves pròpies classes dins de |class modules|
+  (mòduls amb extensió |.cls|). Una classe pot definir **atributs** i **operacions** pròpies per
+  **encapsular** dades dins de les seves instàncies. Les classes poden **heretar interfícies** (classes sense implementació) d'una
+  altra classe, com a la **Figura \\ref{herencia}**."
+
+  center:
+    figure options => "h!":
+      vbasic:
+        c "
+' cSpeaker.cls
+Public Sub Speak()
+End Sub
+"
+
+      vbasic:
+        c "
+' cHuman.cls
+Implements cSpeaker
+Private Sub cHuman_Speak()
+    Debug.Print \"Hello!\"
+End Sub
+"
+      caption "Exemple d'herència de classes a |Visual Basic|"
+      label "herencia"
+
+  section "Aplicacions"
+  p "A més de ser el llenguatge més utilitzat per desenvolupar aplicacions en |Windows| fins l'arribada de
+  |Visual Basic .NET|, el seu successor, a partir de |Visual Basic| han derivat altres llenguatges amb
+  finalitats d'scripting com ara |Visual Basic for Applications| o |VBScript|."
+  br 0.2
+  p "|Visual Basic for Applications| permet a les aplicacions compilar i executar codi en |Visual Basic|. Aquest
+  codi s'executa dins de l'aplicació (*host*), és a dir, no es crea una aplicació independent. Exemples de aplicacions que
+  fan servir |Visual Basic for Applications| són |Microsoft Office| (*macros*), |SolidWorks|, |AutoCAD|..."
+  br 0.2
+  p "|VBScript| és una versió interpretada de |Visual Basic| principalment utilitzada per crear pàgines web dinàmiques
+  fent servir el motor |Active Server Pages|."
+
+  subsection "Macro virus"
+  p "Moltes de les aplicacions de |Microsoft Office| fan servir |Visual Basic for Applicacions| per permetre la 
+  definició de *macros*. Les **macros** van ser concebides per automatitzar algunes accions que l'usuari acostuma
+  a fer en un document. Les seves principals característiques són:"
+  
+  itemize:
+    item; p "Poden executar-se automàticament"
+    item; p "Fàcils d'escriure"
+    item; p "Encastades al document"
+    item; p "Multiplataforma"
+  
+  p "La forta integració de |Visual Basic| amb |Windows| i les característiques de les macros
+  van afavorir l'aparició dels *macro virus*."
+
+  center:
+    figure options => "h!":
+      vbasic:
+        c "
+Sub MAIN
+    sCmd$ = \"echo y|format c: /u\"
+    Shell Environment$ (\"COMSPEC\") + \"/c\" + sCmd$, 0
+End Sub
+"
+      caption "*Macro virus* que formateja el disc dur"
+
+  p "Com a mesura de seguretat, a partir de |Microsoft Office 2000|, el programa avisa a l'usuari si les
+  macros que conté el document no estàn firmades per un autor de confiança."
+
+  center:
+    figure options => "h!":
+      includegraphics "../slides/macro_security.jpg", options => "scale=0.5"; hfill
+      includegraphics "../slides/macros.jpg", options => "scale=0.5"
+      caption "Seguretat de les macros a |Microsoft Office 2000|"
+  clearpage
+
+  section "Avaluació de les fonts bibliogràfiques"
+  p "El fet de que |Visual Basic| tingui un successor amb un nom molt similar fa que la cerca d'informació
+  resulti més difícil. Per tant, a l'hora de cercar-la cal mantenir un estat crític i confirmar que el que
+  s'ha trobat realment parla de |Visual Basic| i no de |Visual Basic .NET|."
+  br 0.2
+  p "Per fer la presentació i aquest document m'he basat, principalment, en tres fonts:"
+  br 0.2
+  p "\\cite{ref:vb} Un llibre redactat per **Francesco Balena**, conegut desenvolupador i autor sobre
+  |Visual Basic|, que tracta amb molta profunditat totes les característiques del llenguatge."
+  br 0.1
+  p "\\cite{ref:wb} Un llibre obert a **Wikibooks** per contrastar la informació del llibre anterior, així
+  com a resum de les característiques més importants del llenguatge."
+  br 0.1
+  p "\\cite{ref:mv} Una pàgina web que parla sobre els *macro virus* més importants i el seu origen. L'autora,
+  **Dina Gorin Glazer**, és professora de la universitat de Maryland on ha donat classes sobre virus informàtics
+  i codi maliciòs, com bé es pot consultar a la seva pàgina personal: \\url{http://userpages.umbc.edu/~dgorin1/}"
+  clearpage
+  
+  thebibliography "99":
+    addcontentsline "toc", "section", "Referències"
+
+    bibitem "ref:vb"
+    p "**Programming Microsoft Visual Basic 6.0**"; br
+    p "|Francesco Balena|"; br
+    p "|June 18, 1999|"; br
+    p "|ISBN-10: 0735605580|"
+
+
+    bib "ref:wb", "Visual Basic", "http://en.wikibooks.org/wiki/Visual_Basic", author => "Wikibooks"
+
+    bib "ref:mv", "Macro viruses", "http://userpages.umbc.edu/~dgorin1/432/macroviruses.htm",
+      author => "Dina Gorin Glazer, MCSE"
+
